@@ -8,28 +8,31 @@ import matplotlib.pyplot as plt
 
 def opticalFlow(im1: np.ndarray, im2: np.ndarray, step_size=10, win_size=5) -> (np.ndarray, np.ndarray):
     if win_size % 2 == 0:
-        win_size = win_size - 1
+        win_size = win_size + 1
 
-    x = cv2.Sobel(im2, cv2.CV_64F, 1, 0, ksize=win_size)
-    y = cv2.Sobel(im2, cv2.CV_64F, 0, 1, ksize=win_size)
+    x = cv2.Sobel(im2, cv2.CV_64F, 1, 0, ksize=5)
+    y = cv2.Sobel(im2, cv2.CV_64F, 0, 1, ksize=5)
     temp = im2 - im1
     mat = []
     dots = []
     for i in range(win_size, im1.shape[0] - win_size + 1, step_size):
         for j in range(win_size, im1.shape[1] - win_size + 1, step_size):
+
             xi = i - win_size // 2
             xj = j - win_size // 2
             yi = i + win_size // 2 + 1
             yj = j + win_size // 2 + 1
+
+
             a = -(temp[xi:yi, xj:yj]).reshape(win_size ** 2, 1)
-            b = np.asmatrix(np.concatenate((x[xi:yi, xj:yj].reshape(win_size ** 2, 1), y[xi:yi, xj:yj].reshape(win_size ** 2, 1)),axis=1))
-            (val, vec) = np.linalg.eig(b.T * b)
-            val.sort()
-            val = val[::-1]
-            if val[0] >= val[1] > 1 and val[0] / val[1] < 100:
-                temp = np.array(np.dot(np.linalg.pinv(b), a))
+            b = np.asmatrix(np.concatenate((x[xi:yi, xj:yj].reshape(win_size ** 2, 1),y[xi:yi, xj:yj].reshape(win_size ** 2, 1)), axis=1))
+            v, vector = np.linalg.eig(b.T * b)
+            v.sort()
+            v = v[::-1]
+            if  v[0] / v[1] < 100 and v[0] >= v[1] > 1 :
+                t = np.array(np.dot(np.linalg.pinv(b), a))
                 mat.append(np.array([j, i]))
-                dots.append(temp[::-1].copy())
+                dots.append(t[::-1].copy())
     return np.array(mat), np.array(dots)
 
 
@@ -92,13 +95,16 @@ def gaussExpand(img: np.ndarray, gs_k: np.ndarray) -> np.ndarray:
 
 
 def pyrBlend(img_1: np.ndarray, img_2: np.ndarray, mask: np.ndarray, levels: int) -> (np.ndarray, np.ndarray):
-    blend1 = img_1 * mask + img_2 * (1 - mask)
-    a = laplaceianReduce(img_1, levels)
-    b = laplaceianReduce(img_2, levels)
+    kernel = getkernel()
+    naive = img_1 * mask + img_2 * (1 - mask)
+    im1_p = laplaceianReduce(img_1, levels)
+    im2_p = laplaceianReduce(img_2, levels)
     gaussianP = gaussianPyr(mask, levels)
 
     temp = []
     for i in range(levels):
-        temp.append(gaussianP[i] * a[i] + (1 - gaussianP[i]) * b[i])
-    blend2 = laplaceianExpand(temp)
-    return (blend1, blend2)
+        temp.append(gaussianP[i] * im1_p[i] + (1 - gaussianP[i]) * im2_p[i])
+
+
+    blended = laplaceianExpand(temp)
+    return (naive, blended)
