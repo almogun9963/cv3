@@ -7,33 +7,17 @@ import matplotlib.pyplot as plt
 
 
 def opticalFlow(im1: np.ndarray, im2: np.ndarray, step_size=10, win_size=5) -> (np.ndarray, np.ndarray):
-    if win_size % 2 == 0:
-        win_size = win_size + 1
+    cols = im1.width
+    rows = im1.height
 
-    x = cv2.Sobel(im2, cv2.CV_64F, 1, 0, ksize=5)
-    y = cv2.Sobel(im2, cv2.CV_64F, 0, 1, ksize=5)
-    temp = im2 - im1
-    mat = []
-    dots = []
-    for i in range(win_size, im1.shape[0] - win_size + 1, step_size):
-        for j in range(win_size, im1.shape[1] - win_size + 1, step_size):
+    velx = cv2.CreateMat(rows, cols, cv2.CV_32FC1)
+    vely = cv2.CreateMat(rows, cols, cv2.CV_32FC1)
 
-            xi = i - win_size // 2
-            xj = j - win_size // 2
-            yi = i + win_size // 2 + 1
-            yj = j + win_size // 2 + 1
+    ans1 =cv2.CalcOpticalFlowHS(im1, im2, False, velx, vely, 100.0,(cv2.CV_TERMCRIT_ITER | cv2.CV_TERMCRIT_EPS, 64, 0.01))
 
+    ans2 =cv2.CalcOpticalFlowLK(im1, im2, (win_size, win_size), velx, vely)
 
-            a = -(temp[xi:yi, xj:yj]).reshape(win_size ** 2, 1)
-            b = np.asmatrix(np.concatenate((x[xi:yi, xj:yj].reshape(win_size ** 2, 1),y[xi:yi, xj:yj].reshape(win_size ** 2, 1)), axis=1))
-            v, vector = np.linalg.eig(b.T * b)
-            v.sort()
-            v = v[::-1]
-            if  v[0] / v[1] < 100 and v[0] >= v[1] > 1 :
-                t = np.array(np.dot(np.linalg.pinv(b), a))
-                mat.append(np.array([j, i]))
-                dots.append(t[::-1].copy())
-    return np.array(mat), np.array(dots)
+    return (ans1,ans2)
 
 
 def getkernel() -> np.ndarray:
@@ -99,12 +83,10 @@ def pyrBlend(img_1: np.ndarray, img_2: np.ndarray, mask: np.ndarray, levels: int
     naive = img_1 * mask + img_2 * (1 - mask)
     im1_p = laplaceianReduce(img_1, levels)
     im2_p = laplaceianReduce(img_2, levels)
-    gaussianP = gaussianPyr(mask, levels)
 
-    temp = []
+    LS = []
     for i in range(levels):
-        temp.append(gaussianP[i] * im1_p[i] + (1 - gaussianP[i]) * im2_p[i])
+        LS.append(kernel[i] * im1_p[i] + (1 - kernel[i]) * im2_p[i])
 
-
-    blended = laplaceianExpand(temp)
+    blended = laplaceianExpand(LS)
     return (naive, blended)
