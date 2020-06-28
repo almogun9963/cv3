@@ -13,10 +13,16 @@ def opticalFlow(im1: np.ndarray, im2: np.ndarray, step_size=10, win_size=5) -> (
     velx = cv2.CreateMat(rows, cols, cv2.CV_32FC1)
     vely = cv2.CreateMat(rows, cols, cv2.CV_32FC1)
     ans1 = cv2.CalcOpticalFlowLK(im1, im2, (win_size, win_size), velx, vely)
-
     ans2 = []
 
-    return (ans1,ans1)
+    for i in range(win_size, im1.shape[0] - win_size + 1, step_size):
+        for j in range(win_size, im1.shape[1] - win_size + 1, step_size):
+
+            #v = np.array(np.dot(np.linalg.pinv(x), y))
+            #ans2.append(v[::-1].copy())
+            ans2[i][j] = 0
+            
+    return (ans1,ans2)
 
 
 def getkernel() -> np.ndarray:
