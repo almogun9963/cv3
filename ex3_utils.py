@@ -12,12 +12,11 @@ def opticalFlow(im1: np.ndarray, im2: np.ndarray, step_size=10, win_size=5) -> (
 
     velx = cv2.CreateMat(rows, cols, cv2.CV_32FC1)
     vely = cv2.CreateMat(rows, cols, cv2.CV_32FC1)
+    ans1 = cv2.CalcOpticalFlowLK(im1, im2, (win_size, win_size), velx, vely)
 
-    ans1 =cv2.CalcOpticalFlowHS(im1, im2, False, velx, vely, 100.0,(cv2.CV_TERMCRIT_ITER | cv2.CV_TERMCRIT_EPS, 64, 0.01))
+    ans2 = []
 
-    ans2 =cv2.CalcOpticalFlowLK(im1, im2, (win_size, win_size), velx, vely)
-
-    return (ans1,ans2)
+    return (ans1,ans1)
 
 
 def getkernel() -> np.ndarray:
